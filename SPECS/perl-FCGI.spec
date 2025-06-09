@@ -3,11 +3,19 @@ Summary:        FastCGI Perl bindings
 # needed to properly replace/obsolete fcgi-perl
 Epoch:          1
 Version:        0.78
-Release:        11%{?dist}
+Release:        12%{?dist}
 # same as fcgi
 License:        OML
 
 Source0:        https://cpan.metacpan.org/authors/id/E/ET/ETHER/FCGI-%{version}.tar.gz 
+# 1/2 Fix CVE-2025-40907 in the bundled fcgi library, bug #2366847,
+# <https://github.com/perl-catalyst/FCGI/issues/14>, copied from fcgi2 library
+# <https://github.com/FastCGI-Archives/fcgi2/issues/67>.
+Patch1:         FCGI-0.82-Update-fcgiapp.c.patch
+# 2/2 Fix CVE-2025-40907 in the bundled fcgi library, bug #2366847,
+# <https://github.com/perl-catalyst/FCGI/issues/14>, copied from fcgi2 library
+# <https://github.com/FastCGI-Archives/fcgi2/issues/67>.
+Patch2:         FCGI-0.82-Fix-size_t-overflow-in-Malloc-argument-in-ReadParams.patch
 URL:            https://metacpan.org/release/FCGI
 BuildRequires:  findutils
 BuildRequires:  gcc
@@ -39,7 +47,7 @@ Requires:       perl(XSLoader)
 %{summary}.
 
 %prep
-%setup -q -n FCGI-%{version}
+%autosetup -p1 -n FCGI-%{version}
 find . -type f -exec chmod -c -x {} +
 
 %build
@@ -61,6 +69,9 @@ make test
 %{_mandir}/man3/*.3*
 
 %changelog
+* Thu May 29 2025 Jitka Plesnikova <jplesnik@redhat.com> - 1:0.78-12
+- Fix CVE-2025-40907 (integer overflow when parsing FastCGI parameters)
+
 * Fri Mar 29 2019 Jitka Plesnikova <jplesnik@redhat.com> - 1:0.78-11
 - Rebuild with enable hardening (bug #1636329)
 
