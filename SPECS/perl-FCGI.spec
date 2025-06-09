@@ -3,7 +3,7 @@ Summary:        FastCGI Perl bindings
 # needed to properly replace/obsolete fcgi-perl
 Epoch:          1
 Version:        0.79
-Release:        8%{?dist}
+Release:        8.1%{?dist}
 # same as fcgi
 License:        OML
 
@@ -11,6 +11,14 @@ Source0:        https://cpan.metacpan.org/authors/id/E/ET/ETHER/FCGI-%{version}.
 # Fix CVE-2012-6687 in the bundled fcgi library, bug #1190294, CPAN RT#118405,
 # patch copied from Debian's libfcgi-perl.
 Patch0:         FCGI-0.78-CVE-2012-6687.patch
+# 1/2 Fix CVE-2025-40907 in the bundled fcgi library, bug #2366847,
+# <https://github.com/perl-catalyst/FCGI/issues/14>, copied from fcgi2 library
+# <https://github.com/FastCGI-Archives/fcgi2/issues/67>.
+Patch1:         FCGI-0.82-Update-fcgiapp.c.patch
+# 2/2 Fix CVE-2025-40907 in the bundled fcgi library, bug #2366847,
+# <https://github.com/perl-catalyst/FCGI/issues/14>, copied from fcgi2 library
+# <https://github.com/FastCGI-Archives/fcgi2/issues/67>.
+Patch2:         FCGI-0.82-Fix-size_t-overflow-in-Malloc-argument-in-ReadParams.patch
 URL:            https://metacpan.org/release/FCGI
 BuildRequires:  coreutils
 BuildRequires:  findutils
@@ -45,10 +53,24 @@ Provides:       bundled(fcgi)
 %description
 %{summary}.
 
+%package tests
+Summary:        Tests for %{name}
+BuildArch:      noarch
+Requires:       %{name} = %{?epoch:%{epoch}:}%{version}-%{release}
+Requires:       perl-Test-Harness
+
+%description tests
+Tests from %{name}. Execute them
+with "%{_libexecdir}/%{name}/test".
+
 %prep
-%setup -q -n FCGI-%{version}
-%patch0 -p1
+%autosetup -p1 -n FCGI-%{version}
 find . -type f -exec chmod -c -x {} +
+# Help generators to recognize Perl scripts
+for F in test.pl; do
+    perl -i -MConfig -ple 'print $Config{startperl} if $. == 1 && !s{\A#!\s*perl}{$Config{startperl}}' "$F"
+    chmod +x "$F"
+done
 
 %build
 perl Makefile.PL INSTALLDIRS=vendor OPTIMIZE="%{optflags}" NO_PACKLIST=1 \
@@ -58,18 +80,33 @@ perl Makefile.PL INSTALLDIRS=vendor OPTIMIZE="%{optflags}" NO_PACKLIST=1 \
 %install
 %make_install
 %{_fixperms} %{buildroot}/*
+# Install tests
+mkdir -p %{buildroot}%{_libexecdir}/%{name}/t
+cp -a test.pl %{buildroot}%{_libexecdir}/%{name}/t/test.t
+cat > %{buildroot}%{_libexecdir}/%{name}/test << 'EOF'
+#!/bin/sh
+cd %{_libexecdir}/%{name} && exec prove -I . -j "$(getconf _NPROCESSORS_ONLN)"
+EOF
+chmod +x %{buildroot}%{_libexecdir}/%{name}/test
 
 %check
+export HARNESS_OPTIONS=j$(perl -e 'if ($ARGV[0] =~ /.*-j([0-9][0-9]*).*/) {print $1} else {print 1}' -- '%{?_smp_mflags}')
 make test
 
 %files
 %license LICENSE
 %doc ChangeLog README
-%{perl_vendorarch}/*
-%exclude %dir %{perl_vendorarch}/auto
-%{_mandir}/man3/*.3*
+%{perl_vendorarch}/auto/FCGI
+%{perl_vendorarch}/FCGI.pm
+%{_mandir}/man3/FCGI.3*
+
+%files tests
+%{_libexecdir}/%{name}
 
 %changelog
+* Thu May 29 2025 Jitka Plesnikova <jplesnik@redhat.com> - 1:0.79-8.1
+- Fix CVE-2025-40907 (integer overflow when parsing FastCGI parameters)
+
 * Mon Aug 09 2021 Mohan Boddu <mboddu@redhat.com> - 1:0.79-8
 - Rebuilt for IMA sigs, glibc 2.34, aarch64 flags
   Related: rhbz#1991688
