@@ -7,7 +7,7 @@ Summary:        FastCGI Perl bindings
 # needed to properly replace/obsolete fcgi-perl
 Epoch:          1
 Version:        0.82
-Release:        13.1%{?dist}
+Release:        14%{?dist}
 # eg/echo.pl:   "See the LICENSE file"
 # fastcgi.h:    "See the LICENSE file"
 # FCGI.pm:      "See the LICENSE file"
@@ -137,7 +137,7 @@ make test
 %{_libexecdir}/%{name}
 
 %changelog
-* Fri May 30 2025 Jitka Plesnikova <jplesnik@redhat.com> - 1:0.82-13.1
+* Tue Jun 03 2025 Jitka Plesnikova <jplesnik@redhat.com> - 1:0.82-14
 - Fix CVE-2025-40907 (integer overflow when parsing FastCGI parameters)
 
 * Tue Oct 29 2024 Troy Dawson <tdawson@redhat.com> - 1:0.82-13
